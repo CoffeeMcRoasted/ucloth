@@ -3,6 +3,7 @@
 
 #include <array>
 #include <umath/umath.h>
+#include <vector>
 
 namespace ucloth
 {
@@ -19,6 +20,7 @@ struct Applied_force
 
 // Clockwise definition of a geometry face referring to particles in world.
 using Face = std::array<Particle, 3>;
+using Mesh = std::vector<Face>;
 }  // namespace simulation
 }  // namespace ucloth
 

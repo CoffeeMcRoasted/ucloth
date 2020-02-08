@@ -2,6 +2,7 @@
 #define UCLOTH_CONSTRAINT_H_
 
 #include <simulation/uclothcommon.h>
+#include <tuple>
 #include <umath/umath.h>
 
 namespace ucloth

@@ -1,4 +1,4 @@
-# add_library(ucloth_c_api DYNAMIC
+# add_library(ucloth_c_api SHARED
 # )
 
 # target_link_libraries(ucloth_c_api

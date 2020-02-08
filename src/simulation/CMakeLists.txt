@@ -4,6 +4,8 @@ add_library(ucloth STATIC
     constraint.h
     constraint.cpp
     uclothcommon.h
+    pbdsystem.h
+    pbdsystem.cpp
 )
 
 target_link_libraries(ucloth
