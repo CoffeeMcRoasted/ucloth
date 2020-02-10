@@ -11,7 +11,7 @@ namespace simulation
 {
 // A particle is an index within the vectors of the world
 using Particle = size_t;
-using Force = umath::Vec_3;
+using Force = umath::Vec3;
 struct Applied_force
 {
     Particle dest;

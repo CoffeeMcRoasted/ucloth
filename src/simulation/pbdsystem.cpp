@@ -4,11 +4,11 @@ namespace ucloth
 {
 namespace simulation
 {
-void PBD_system::apply_external_accelerations(std::vector<umath::Vec_3> const& accelerations,
+void PBD_system::apply_external_accelerations(std::vector<umath::Vec3> const& accelerations,
                                               umath::Real const delta_time,
-                                              std::vector<umath::Vec_3>& velocities)
+                                              std::vector<umath::Vec3>& velocities)
 {
-    for (umath::Vec_3 const& acceleration : accelerations)
+    for (umath::Vec3 const& acceleration : accelerations)
     {
         // the size for velocties and inverted masses should be the same.
         size_t const size = velocities.size();
@@ -22,7 +22,7 @@ void PBD_system::apply_external_accelerations(std::vector<umath::Vec_3> const& a
 void PBD_system::damp_velocity(umath::Real const k_damping,
                                std::vector<umath::Real> const& inverse_masses,
                                std::vector<umath::Position> const& positions,
-                               std::vector<umath::Vec_3>& velocities)
+                               std::vector<umath::Vec3>& velocities)
 {
     // The positions, velocities and inverse_masses should be the same size.
     size_t const n_particles = positions.size();
@@ -47,7 +47,7 @@ void PBD_system::damp_velocity(umath::Real const k_damping,
     }
     vcm /= total_mass;
     // Calculate the angular velocity
-    umath::Vec_3 L = {0.0f, 0.0f, 0.0f};
+    umath::Vec3 L = {0.0f, 0.0f, 0.0f};
     for (Particle p = 0; p < n_particles; ++p)
     {
         umath::Position const ri = positions[p] - xcm;
@@ -63,7 +63,7 @@ void PBD_system::damp_velocity(umath::Real const k_damping,
         I += ri_prime * umath::transpose(ri_prime) / inverse_masses[p];
     }
 
-    umath::Vec_3 angular_velocity = umath::inverse(I) * L;
+    umath::Vec3 angular_velocity = umath::inverse(I) * L;
     for (Particle p = 0; p < n_particles; ++p)
     {
         glm::vec3 const ri = positions[p] - xcm;

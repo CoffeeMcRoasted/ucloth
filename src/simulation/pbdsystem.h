@@ -15,13 +15,14 @@ class PBD_system
 public:
     bool simulate(umath::Real const delta_time, World& world);
 
-    static void apply_external_accelerations(std::vector<umath::Vec_3> const& accelerations,
+    static void apply_external_accelerations(std::vector<umath::Vec3> const& accelerations,
                                              umath::Real const delta_time,
-                                             std::vector<umath::Vec_3>& velocities);
+                                             std::vector<umath::Vec3>& velocities);
 
-    static void damp_velocity(umath::Real const k_dampening,
+    static void damp_velocity(umath::Real const k_damping,
                               std::vector<umath::Real> const& inverse_masses,
-                              std::vector<umath::Vec_3>& velocities);
+                              std::vector<umath::Position> const& positions,
+                              std::vector<umath::Vec3>& velocities);
 
 private:
 };

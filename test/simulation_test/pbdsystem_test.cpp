@@ -19,9 +19,9 @@ TEST(PBD_system_test, External_acceleration_test)
     using namespace ucloth::umath;
 
     // Gravity
-    std::vector<Vec_3> accelerations = {{0.0f, 0.0f, -9.8f}};
+    std::vector<Vec3> accelerations = {{0.0f, 0.0f, -9.8f}};
     // Single particle
-    std::vector<Vec_3> velocities = {{0.0f, 0.0f, 0.0f}};
+    std::vector<Vec3> velocities = {{0.0f, 0.0f, 0.0f}};
     // Simulation time
     Real dt = 0.1;
 
