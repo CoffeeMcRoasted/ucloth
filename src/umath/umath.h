@@ -13,6 +13,11 @@ using Position = Vec3;
 using Quaternion = glm::vec4;
 using Real = float;
 using Mat3x3 = glm::mat3;
+struct Ray
+{
+    Position orig;
+    Vec3 dir;
+};
 
 constexpr Real k_div_by_zero_guard = 1e-8;
 constexpr Real k_epsilon = 1e-8;

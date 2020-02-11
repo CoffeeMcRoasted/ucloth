@@ -1,5 +1,6 @@
 #include "pbdsystem.h"
 #include <numeric>
+#include <simulation/collision.h>
 namespace ucloth
 {
 namespace simulation
@@ -55,11 +56,11 @@ void PBD_system::damp_velocity(umath::Real const k_damping,
     }
     // Calculate Inertia
     // ri_prime is the skew-symmetric matrix that has the property ri_prime v = ri x v
-    umath::Mat_3x3 I = umath::Mat_3x3{0.0f};
+    umath::Mat3x3 I = umath::Mat3x3{0.0f};
     for (Particle p = 0; p < n_particles; ++p)
     {
         umath::Position const ri = positions[p] - xcm;
-        umath::Mat_3x3 const ri_prime = {{0, ri.z, -ri.y}, {-ri.z, 0, ri.x}, {ri.y, -ri.x, 0}};
+        umath::Mat3x3 const ri_prime = {{0, ri.z, -ri.y}, {-ri.z, 0, ri.x}, {ri.y, -ri.x, 0}};
         I += ri_prime * umath::transpose(ri_prime) / inverse_masses[p];
     }
 
@@ -70,6 +71,43 @@ void PBD_system::damp_velocity(umath::Real const k_damping,
         glm::vec3 const deltaVel = vcm + umath::cross(angular_velocity, ri) - velocities[p];
         velocities[p] += k_damping * deltaVel;
     }
+}
+
+std::vector<simulation::Collision_constraint> PBD_system::generate_collision_constraints(
+    std::vector<umath::Position> const& positions,
+    std::vector<umath::Position> const& p_estimations,
+    std::vector<simulation::Mesh> const& meshes,
+    umath::Real const cloth_thickness)
+{
+    // All the vectors should be the same size.
+    // TODO: Modify this to use and optimization structure.
+    // We generate the xi -> pi rays
+    size_t const n_particles = positions.size();
+    std::vector<umath::Ray> rays;
+    rays.reserve(n_particles);
+    for (Particle p = 0; p < n_particles; ++p)
+    {
+        rays.emplace_back(umath::Ray{positions[p], p_estimations[p] - positions[p]});
+    }
+    std::vector<simulation::Collision_constraint> constraints;
+    constraints.reserve(n_particles);
+    for (Particle p = 0; p < n_particles; ++p)
+    {
+        for (auto const& mesh : meshes)
+        {
+            for (auto const& face : mesh)
+            {
+                // TODO: Revise constraint generation to
+                auto [success, result] = simulation::ray_triangle_intersection(
+                    rays[p].orig, rays[p].dir, positions[face[0]], positions[face[1]], positions[face[2]]);
+                if (success)
+                {
+                    constraints.emplace_back(Collision_constraint{p, face[0], face[1], face[2], cloth_thickness, 1.0});
+                }
+            }
+        }
+    }
+    constraints.shrink_to_fit();
 }
 }  // namespace simulation
 }  // namespace ucloth

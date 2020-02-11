@@ -24,6 +24,12 @@ public:
                               std::vector<umath::Position> const& positions,
                               std::vector<umath::Vec3>& velocities);
 
+    static std::vector<simulation::Collision_constraint> generate_collision_constraints(
+        std::vector<umath::Position> const& positions,
+        std::vector<umath::Position> const& p_estimations,
+        std::vector<simulation::Mesh> const& meshes,
+        umath::Real const cloth_thickness);
+
 private:
 };
 }  // namespace simulation
