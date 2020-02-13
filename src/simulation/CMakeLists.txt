@@ -6,6 +6,8 @@ add_library(ucloth STATIC
     uclothcommon.h
     pbdsystem.h
     pbdsystem.cpp
+    collision.h
+    collision.cpp
 )
 
 target_link_libraries(ucloth

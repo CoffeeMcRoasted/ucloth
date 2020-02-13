@@ -73,10 +73,10 @@ void project_bending_constraints(std::vector<Bending_constraint> const& constrai
     }
 }
 
-void project_collisionconstraints(std::vector<Collision_constraint> const& constraints,
-                                  std::vector<umath::Real> const& inverse_masses,
-                                  unsigned int const solver_iterations,
-                                  std::vector<umath::Position>& positions)
+void project_collision_constraints(std::vector<Collision_constraint> const& constraints,
+                                   std::vector<umath::Real> const& inverse_masses,
+                                   unsigned int const solver_iterations,
+                                   std::vector<umath::Position>& positions)
 {
     // https://github.com/InteractiveComputerGraphics/PositionBasedDynamics/blob/master/PositionBasedDynamics/PositionBasedDynamics.cpp
     // https://pybullet.org/Bullet/phpBB3/viewtopic.php?f=4&t=2544&p=10171&hilit=Position+based+dynamics#p10171
@@ -124,8 +124,7 @@ void project_collisionconstraints(std::vector<Collision_constraint> const& const
         umath::Vec3 const delta_p2 = -s * inverse_masses[constraint.p2] * grad_p2;
         umath::Vec3 const delta_p3 = -s * inverse_masses[constraint.p3] * grad_p3;
 
-        umath::Real const k_prime =
-            1 - (1 / powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations)));
+        umath::Real const k_prime = 1 - powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations));
 
         p1 += delta_p1 * k_prime;
         p2 += delta_p2 * k_prime;

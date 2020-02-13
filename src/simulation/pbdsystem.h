@@ -30,6 +30,10 @@ public:
         std::vector<simulation::Mesh> const& meshes,
         umath::Real const cloth_thickness);
 
+    static std::vector<umath::Position> calculate_position_estimates(std::vector<umath::Position> const& positions,
+                                                                     std::vector<umath::Vec3> const& velocities,
+                                                                     umath::Real const delta_time);
+
 private:
 };
 }  // namespace simulation

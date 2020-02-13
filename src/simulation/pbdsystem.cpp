@@ -11,7 +11,7 @@ void PBD_system::apply_external_accelerations(std::vector<umath::Vec3> const& ac
 {
     for (umath::Vec3 const& acceleration : accelerations)
     {
-        // the size for velocties and inverted masses should be the same.
+        // All the vectors should be the same size.
         size_t const size = velocities.size();
         for (size_t i = 0; i < size; ++i)
         {
@@ -25,7 +25,7 @@ void PBD_system::damp_velocity(umath::Real const k_damping,
                                std::vector<umath::Position> const& positions,
                                std::vector<umath::Vec3>& velocities)
 {
-    // The positions, velocities and inverse_masses should be the same size.
+    // All the vectors should be the same size.
     size_t const n_particles = positions.size();
     // Mass total of the system
     umath::Real const total_mass = std::accumulate(
@@ -102,12 +102,30 @@ std::vector<simulation::Collision_constraint> PBD_system::generate_collision_con
                     rays[p].orig, rays[p].dir, positions[face[0]], positions[face[1]], positions[face[2]]);
                 if (success)
                 {
-                    constraints.emplace_back(Collision_constraint{p, face[0], face[1], face[2], cloth_thickness, 1.0});
+                    constraints.emplace_back(
+                        Collision_constraint{p, face[0], face[1], face[2], cloth_thickness, umath::Real{1.0}});
                 }
             }
         }
     }
     constraints.shrink_to_fit();
+    return constraints;
 }
+
+std::vector<umath::Position> PBD_system::calculate_position_estimates(std::vector<umath::Position> const& positions,
+                                                                      std::vector<umath::Vec3> const& velocities,
+                                                                      umath::Real const delta_time)
+{
+    // All the vectors should be the same size.
+    size_t const n_particles = positions.size();
+    std::vector<umath::Position> estimates;
+    estimates.reserve(n_particles);
+    for (Particle p = 0; p < n_particles; ++p)
+    {
+        estimates.emplace_back(positions[p] + delta_time * velocities[p]);
+    }
+    return estimates;
+}
+
 }  // namespace simulation
 }  // namespace ucloth

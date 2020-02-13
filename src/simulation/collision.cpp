@@ -41,6 +41,7 @@ std::tuple<bool, umath::Vec3> ray_triangle_intersection(umath::Position const& o
         umath::Vec3 const intersection_point = orig + dir * t;
         return std::make_tuple(true, intersection_point);
     }
+    return std::make_tuple(false, umath::Vec3());
 }
 }  // namespace simulation
 }  // namespace ucloth

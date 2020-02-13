@@ -15,6 +15,6 @@ TEST(UClothWorldTest, CreateWorld)
     EXPECT_TRUE(world.inverse_particle_masses.empty());
     EXPECT_TRUE(world.bending_constraints.empty());
     EXPECT_TRUE(world.distance_constraints.empty());
-    EXPECT_TRUE(world.forces.empty());
+    EXPECT_TRUE(world.accelerations.empty());
     EXPECT_TRUE(world.meshes.empty());
 }

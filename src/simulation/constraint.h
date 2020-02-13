@@ -45,7 +45,7 @@ void project_bending_constraints(std::vector<Bending_constraint> const& constrai
                                  std::vector<umath::Real> const& inverse_masses,
                                  unsigned int const solver_iterations,
                                  std::vector<umath::Position>& positions);
-void project_collision_constraints(std::vector<Bending_constraint> const& constraints,
+void project_collision_constraints(std::vector<Collision_constraint> const& constraints,
                                    std::vector<umath::Real> const& inverse_masses,
                                    unsigned int const solver_iterations,
                                    std::vector<umath::Position>& positions);

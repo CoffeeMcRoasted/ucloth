@@ -1,8 +1,9 @@
 add_executable(test_simulation 
-    main.cpp
-    world_test.cpp
+    collision_test.cpp
     constraint_test.cpp
+    main.cpp
     pbdsystem_test.cpp
+    world_test.cpp
 )
 
 target_link_libraries(test_simulation 
