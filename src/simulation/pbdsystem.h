@@ -34,6 +34,13 @@ public:
                                                                      std::vector<umath::Vec3> const& velocities,
                                                                      umath::Real const delta_time);
 
+    static void project_constraints(std::vector<simulation::Collision_constraint> const& collision_constraints,
+                                    std::vector<simulation::Distance_constraint> const& distance_constraints,
+                                    std::vector<simulation::Bending_constraint> const& bending_constraints,
+                                    std::vector<umath::Real> const& inverse_masses,
+                                    unsigned int const solver_iterations,
+                                    std::vector<umath::Position>& position_estimates);
+
 private:
 };
 }  // namespace simulation

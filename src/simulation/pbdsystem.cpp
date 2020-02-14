@@ -127,5 +127,17 @@ std::vector<umath::Position> PBD_system::calculate_position_estimates(std::vecto
     return estimates;
 }
 
+void PBD_system::project_constraints(std::vector<simulation::Collision_constraint> const& collision_constraints,
+                                     std::vector<simulation::Distance_constraint> const& distance_constraints,
+                                     std::vector<simulation::Bending_constraint> const& bending_constraints,
+                                     std::vector<umath::Real> const& inverse_masses,
+                                     unsigned int const solver_iterations,
+                                     std::vector<umath::Position>& position_estimates)
+{
+    project_distance_constraints(distance_constraints, inverse_masses, solver_iterations, position_estimates);
+    project_bending_constraints(bending_constraints, inverse_masses, solver_iterations, position_estimates);
+    project_collision_constraints(collision_constraints, inverse_masses, solver_iterations, position_estimates);
+}
+
 }  // namespace simulation
 }  // namespace ucloth

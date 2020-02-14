@@ -86,7 +86,6 @@ void project_collision_constraints(std::vector<Collision_constraint> const& cons
     // We calculate the barycentric coordinates to be able to derive the gradient.
     for (auto const& constraint : constraints)
     {
-        float b0, b1, b2 = 1.0f / 3.0f;
         // We define the triangle.
         umath::Position& p1 = positions[constraint.p1];
         umath::Position& p2 = positions[constraint.p2];
@@ -98,24 +97,24 @@ void project_collision_constraints(std::vector<Collision_constraint> const& cons
         umath::Vec3 const n = umath::cross(u, v);
         umath::Vec3 const w = q - p1;
         // We find the barycentric coordinates of the proyected point.
-        float const gamma = umath::dot(umath::cross(u, w), n) / umath::dot(n, n);
-        float const beta = umath::dot(umath::cross(w, v), n) / umath::dot(n, n);
-        float const alfa = 1 - gamma - beta;
+        umath::Real const gamma = umath::dot(umath::cross(u, w), n) / umath::dot(n, n);
+        umath::Real const beta = umath::dot(umath::cross(w, v), n) / umath::dot(n, n);
+        umath::Real const alfa = 1.0 - gamma - beta;
         // TODO: Point lies outside of the triangle!
 
         // Calculate normal in the direction of the point to retain side
         umath::Vec3 const qproj = alfa * p1 + beta * p2 + gamma * p3;
         umath::Vec3 dir_n = q - qproj;
-        float const d = umath::length(dir_n);
+        umath::Real const d = umath::length(dir_n);
         dir_n = umath::normalize(dir_n);
-        float const C = d - constraint.thickness;
+        umath::Real const C = d - constraint.thickness;
 
         umath::Vec3 const grad_q = dir_n;
         umath::Vec3 const grad_p1 = -dir_n * alfa;
         umath::Vec3 const grad_p2 = -dir_n * beta;
         umath::Vec3 const grad_p3 = -dir_n * gamma;
         // Module of the gradients is equal to the scalar (normal vector)
-        float const s =
+        umath::Real const s =
             C / (inverse_masses[constraint.q] + alfa * alfa * inverse_masses[constraint.p1] +
                  beta * beta * inverse_masses[constraint.p2] + gamma * gamma * inverse_masses[constraint.p3]);
 
