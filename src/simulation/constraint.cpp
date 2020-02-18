@@ -19,7 +19,7 @@ void project_distance_constraints(std::vector<Distance_constraint> const& constr
 
         umath::Vec3 const shared_value = (umath::length(p1 - p2) - constraint.distance) * (p1 - p2) /
                                          (umath::length(p1 - p2) * (w_1 + w_2) + umath::k_div_by_zero_guard);
-        const float k_prime = 1 - (1 / powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations)));
+        umath::Real const k_prime = 1 - powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations));
         p1 += -w_1 * k_prime * shared_value;
         p2 += w_2 * k_prime * shared_value;
     }
@@ -63,8 +63,7 @@ void project_bending_constraints(std::vector<Bending_constraint> const& constrai
         umath::Position const delta_p3 = inverse_masses[constraint.p3] * k * q3;
         umath::Position const delta_p4 = inverse_masses[constraint.p4] * k * q4;
 
-        umath::Real const k_prime =
-            1 - (1 / powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations)));
+        umath::Real const k_prime = 1 - powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations));
 
         positions[constraint.p1] += delta_p1 * k_prime;
         positions[constraint.p2] += delta_p2 * k_prime;

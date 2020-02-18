@@ -13,7 +13,7 @@ protected:
     }
 };
 
-TEST(PBD_system_test, External_acceleration_test)
+TEST_F(PBD_system_test, External_acceleration_test)
 {
     using namespace ucloth::simulation;
     using namespace ucloth::umath;

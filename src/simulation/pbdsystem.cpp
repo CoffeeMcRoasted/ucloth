@@ -1,4 +1,5 @@
 #include "pbdsystem.h"
+#include <algorithm>
 #include <numeric>
 #include <simulation/collision.h>
 namespace ucloth
@@ -87,7 +88,7 @@ std::vector<simulation::Collision_constraint> PBD_system::generate_collision_con
     rays.reserve(n_particles);
     for (Particle p = 0; p < n_particles; ++p)
     {
-        rays.emplace_back(umath::Ray{positions[p], p_estimations[p] - positions[p]});
+        rays.emplace_back(std::move(umath::Ray{positions[p], p_estimations[p] - positions[p]}));
     }
     std::vector<simulation::Collision_constraint> constraints;
     constraints.reserve(n_particles);
@@ -97,7 +98,11 @@ std::vector<simulation::Collision_constraint> PBD_system::generate_collision_con
         {
             for (auto const& face : mesh)
             {
-                // TODO: Revise constraint generation to
+                if (p == face[0] || p == face[1] || p == face[2])
+                {
+                    continue;  //< Skip if vertex belongs to the face.
+                }
+                // TODO: Revise constraint generation
                 auto [success, result] = simulation::ray_triangle_intersection(
                     rays[p].orig, rays[p].dir, positions[face[0]], positions[face[1]], positions[face[2]]);
                 if (success)
@@ -112,19 +117,19 @@ std::vector<simulation::Collision_constraint> PBD_system::generate_collision_con
     return constraints;
 }
 
-std::vector<umath::Position> PBD_system::calculate_position_estimates(std::vector<umath::Position> const& positions,
-                                                                      std::vector<umath::Vec3> const& velocities,
-                                                                      umath::Real const delta_time)
+void PBD_system::calculate_position_estimates(std::vector<umath::Position> const& positions,
+                                              std::vector<umath::Vec3> const& velocities,
+                                              umath::Real const delta_time,
+                                              std::vector<umath::Position>& position_estimates)
 {
     // All the vectors should be the same size.
     size_t const n_particles = positions.size();
-    std::vector<umath::Position> estimates;
-    estimates.reserve(n_particles);
+    position_estimates.clear();
+    position_estimates.reserve(n_particles);
     for (Particle p = 0; p < n_particles; ++p)
     {
-        estimates.emplace_back(positions[p] + delta_time * velocities[p]);
+        position_estimates.emplace_back(positions[p] + delta_time * velocities[p]);
     }
-    return estimates;
 }
 
 void PBD_system::project_constraints(std::vector<simulation::Collision_constraint> const& collision_constraints,
@@ -137,6 +142,51 @@ void PBD_system::project_constraints(std::vector<simulation::Collision_constrain
     project_distance_constraints(distance_constraints, inverse_masses, solver_iterations, position_estimates);
     project_bending_constraints(bending_constraints, inverse_masses, solver_iterations, position_estimates);
     project_collision_constraints(collision_constraints, inverse_masses, solver_iterations, position_estimates);
+}
+
+/**
+pbd algorithm:
+forall vertices i
+    initialize x_i = x_i^0, v_i = v_i^0, w_i = 1/m_i
+endfor
+loop
+    forall vertices i do v_i <-- v_i + T_inc * wi * f_ext(x_i)
+    dampVelocities(v_1, v_N)
+    forall vertices i do p_i <-- x_i + T_inc * v_i
+    forall vertices i do generateCollisionConstraints(x_i --> p_i)
+    loop solverIterations times
+        projectConstraints(C_1,..., C_M + M_Coll, p_1,...,p_n)
+    endloop
+    forall vertices i
+        v_i <--(p_i - x_i)/T_inc
+        x_i <--p_i
+    endfor
+    velocityUpdate(v1,..., v_N)
+endloop
+**/
+void PBD_system::simulate(umath::Real const delta_time, World& world)
+{
+    apply_external_accelerations(world.positions, delta_time, world.velocities);
+    damp_velocity(velocity_damping, world.inverse_particle_masses, world.positions, world.velocities);
+    calculate_position_estimates(world.positions, world.velocities, delta_time, position_estimates);
+    std::vector<simulation::Collision_constraint> collision_constraints =
+        generate_collision_constraints(world.positions, position_estimates, world.meshes, cloth_thickness);
+    for (size_t i = 0; i < solver_iterations; ++i)
+    {
+        project_constraints(collision_constraints,
+                            world.distance_constraints,
+                            world.bending_constraints,
+                            world.inverse_particle_masses,
+                            solver_iterations,
+                            position_estimates);
+    }
+    size_t const n_particles = world.positions.size();
+    for (simulation::Particle p = 0; p < n_particles; ++p)
+    {
+        world.velocities[p] = (position_estimates[p] - world.positions[p]) / delta_time;
+    }
+    std::copy(position_estimates.begin(), position_estimates.end(), world.positions.begin());
+    // velocity_update()
 }
 
 }  // namespace simulation

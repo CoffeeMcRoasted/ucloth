@@ -9,10 +9,6 @@ class Collision_test : public ::testing::Test
 protected:
     void SetUp() override
     {
-        world.positions = {{0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {0.25, 0.25, 0.05}};
-        world.velocities = {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, -50.0}};
-        world.inverse_particle_masses = {1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1};
-        world.meshes = {{{0, 3, 1}, {0, 2, 1}}};  //< 1 quad composed of 2 triangles.
     }
     void TearDown() override
     {
@@ -26,8 +22,15 @@ protected:
 TEST_F(Collision_test, Collision_Generation_test)
 {
     using namespace ucloth;
-    std::vector<umath::Position> pos_estimates =
-        simulation::PBD_system::calculate_position_estimates(world.positions, world.velocities, delta_time);
+
+    world.positions = {
+        {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0f / 3.0f, 1.0f / 3.0f, 0.05}};
+    world.velocities = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -50.0}};
+    world.inverse_particle_masses = {1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1};
+    world.meshes = {{{0, 3, 1}, {1, 3, 2}}};  //< 1 quad composed of 2 triangles.
+
+    std::vector<umath::Position> pos_estimates;
+    simulation::PBD_system::calculate_position_estimates(world.positions, world.velocities, delta_time, pos_estimates);
 
     std::vector<simulation::Collision_constraint> collisions = simulation::PBD_system::generate_collision_constraints(
         world.positions, pos_estimates, world.meshes, cloth_thickness);
@@ -47,11 +50,17 @@ TEST_F(Collision_test, Collision_Generation_test)
 TEST_F(Collision_test, Inverse_Collision_Generation_test)
 {
     using namespace ucloth;
-    // We invert the position and velocity in the z axis
-    world.positions[4].z = -world.positions[4].z;
-    world.velocities[4].z = -world.velocities[4].z;
-    std::vector<umath::Position> pos_estimates =
-        simulation::PBD_system::calculate_position_estimates(world.positions, world.velocities, delta_time);
+    // Compared to the previous test:
+    //  - We invert the position of the colliding particle in the z axis
+    //  - We invert all the velocities in the z axis
+    world.positions = {
+        {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0f / 3.0f, 1.0f / 3.0f, -0.05}};
+    world.velocities = {{0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, 50.0}};
+    world.inverse_particle_masses = {1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1};
+    world.meshes = {{{0, 3, 1}, {1, 3, 2}}};  //< 1 quad composed of 2 triangles.
+
+    std::vector<umath::Position> pos_estimates;
+    simulation::PBD_system::calculate_position_estimates(world.positions, world.velocities, delta_time, pos_estimates);
 
     std::vector<simulation::Collision_constraint> collisions = simulation::PBD_system::generate_collision_constraints(
         world.positions, pos_estimates, world.meshes, cloth_thickness);
