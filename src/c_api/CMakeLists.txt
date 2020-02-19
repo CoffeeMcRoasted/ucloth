@@ -6,6 +6,10 @@ add_library(ucloth_c_api SHARED
     ucloth_structures.h
 )
 
+# set_target_properties(ucloth_c_api PROPERTIES
+# TODO: Set properties to export dll and lib
+# )
+
 target_link_libraries(ucloth_c_api
     PRIVATE ucloth
 )

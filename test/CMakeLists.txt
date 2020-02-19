@@ -11,3 +11,4 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 add_subdirectory(simulation_test)
+add_subdirectory(c_api_test)

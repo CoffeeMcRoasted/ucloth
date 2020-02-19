@@ -27,6 +27,7 @@ struct World
 
     void clear();
     void reserve_for_particles(size_t const n_particles);
+    void add_acceleration(umath::Vec3 acceleration);
 };
 }  // namespace simulation
 }  // namespace ucloth

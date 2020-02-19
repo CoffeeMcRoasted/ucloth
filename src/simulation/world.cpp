@@ -20,5 +20,10 @@ void World::reserve_for_particles(size_t const n_particles)
     velocities.reserve(n_particles);
     inverse_particle_masses.reserve(n_particles);
 }
+
+void World::add_acceleration(umath::Vec3 acceleration)
+{
+    accelerations.emplace_back(acceleration);
+}
 }  // namespace simulation
 }  // namespace ucloth
