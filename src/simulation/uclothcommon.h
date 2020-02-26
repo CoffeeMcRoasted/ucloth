@@ -2,7 +2,9 @@
 #define UCLOTH_UCLOTH_COMMON_H_
 
 #include <array>
+#include <cstdint>
 #include <umath/umath.h>
+#include <utility>
 #include <vector>
 
 namespace ucloth
@@ -20,6 +22,7 @@ struct Applied_force
 
 // Clockwise definition of a geometry face referring to particles in world.
 using Face = std::array<Particle, 3>;
+using Edge = std::pair<Particle, Particle>;
 using Mesh = std::vector<Face>;
 }  // namespace simulation
 }  // namespace ucloth

@@ -166,7 +166,7 @@ endloop
 **/
 void PBD_system::simulate(umath::Real const delta_time, World& world)
 {
-    apply_external_accelerations(world.positions, delta_time, world.velocities);
+    apply_external_accelerations(world.accelerations, delta_time, world.velocities);
     damp_velocity(velocity_damping, world.inverse_particle_masses, world.positions, world.velocities);
     calculate_position_estimates(world.positions, world.velocities, delta_time, position_estimates);
     std::vector<simulation::Collision_constraint> collision_constraints =
