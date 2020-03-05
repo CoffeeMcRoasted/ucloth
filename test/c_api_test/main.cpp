@@ -8,7 +8,7 @@ int main()
     Ucloth_vector3f v2(4, 5, 6);
     Ucloth_vector3f v3(7, 8, 9);
     std::vector<Ucloth_vector3f> v = {v1, v2, v3};
-    ucloth_add_positions(handle, v.data(), v.size());
+    // ucloth_add_positions(handle, v.data(), v.size());
     ucloth_clear_world(handle);
     ucloth_delete_world(handle);
 }

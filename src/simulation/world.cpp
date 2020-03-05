@@ -39,32 +39,14 @@ void World::add_acceleration(umath::Vec3 acceleration)
     accelerations.emplace_back(acceleration);
 }
 
-void World::add_cloth(std::vector<umath::Position> const& pos,
-                      Mesh const& mesh,
-                      umath::Real cloth_elasticity,
-                      umath::Real cloth_bending_stifness)
+void World::add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elasticity, umath::Real cloth_bending_stifness)
 {
-    size_t const new_particles = pos.size();
-    size_t const current_size = positions.size();
-    reserve_for_particles(current_size + new_particles);
-    positions.insert(positions.end(), pos.begin(), pos.end());
-    velocities.resize(current_size + new_particles, umath::Vec3{0.0f, 0.0f, 0.0f});
-    // Current size should correspond to the latest available index
-    size_t const index_shift = current_size;
-    Mesh copy = mesh;
-    for (auto& face : copy)
-    {
-        face[0] += index_shift;
-        face[1] += index_shift;
-        face[2] += index_shift;
-    }
-    auto const& emplaced_mesh = meshes.emplace_back(std::move(copy));
     // Generate distance constraints
     // Generate edges
     std::unordered_map<Edge, std::vector<Face>, pair_hash> edge_faces_map;
     // Worst case scenario all triangles are separate
-    edge_faces_map.reserve(new_particles * 3);
-    for (auto const& face : emplaced_mesh)
+    edge_faces_map.reserve((mesh.end - mesh.begin) * 3);
+    for (auto const& face : mesh.faces)
     {
         Edge const e0 = {face[0], face[1]};
         Edge const e1 = {face[1], face[2]};
@@ -139,6 +121,86 @@ void World::add_cloth(std::vector<umath::Position> const& pos,
                 Bending_constraint{p1, p2, p3, p4, dihedral_angle, cloth_bending_stifness});
         }
     }
+}
+
+Mesh const& World::add_cloth(std::vector<umath::Position> const& pos,
+                             Mesh const& mesh,
+                             umath::Real cloth_mass,
+                             umath::Real cloth_elasticity,
+                             umath::Real cloth_bending_stifness)
+{
+    size_t const new_particles = pos.size();
+    size_t const current_size = positions.size();
+    reserve_for_particles(current_size + new_particles);
+    positions.insert(positions.end(), pos.begin(), pos.end());
+    velocities.resize(current_size + new_particles, umath::Vec3{0.0f, 0.0f, 0.0f});
+    umath::Real const inv_mass_per_particle = static_cast<umath::Real>(current_size + new_particles) / cloth_mass;
+    inverse_particle_masses.resize(current_size + new_particles, inv_mass_per_particle);
+    // Current size should correspond to the latest available index
+    size_t const index_shift = current_size;
+    Mesh copy = mesh;
+    copy.begin += index_shift;
+    copy.end += index_shift;
+    for (auto& face : copy.faces)
+    {
+        face[0] += index_shift;
+        face[1] += index_shift;
+        face[2] += index_shift;
+    }
+    copy.type = Mesh_type::cloth;
+    auto const& emplaced_mesh = meshes.emplace_back(std::move(copy));
+    add_constraints_for_mesh(emplaced_mesh, cloth_elasticity, cloth_bending_stifness);
+    return emplaced_mesh;
+}
+
+Mesh const& World::add_static_mesh(std::vector<umath::Position> const& pos, Mesh const& mesh)
+{
+    size_t const new_particles = pos.size();
+    size_t const current_size = positions.size();
+    reserve_for_particles(current_size + new_particles);
+    positions.insert(positions.end(), pos.begin(), pos.end());
+    velocities.resize(current_size + new_particles, umath::Vec3{0.0f, 0.0f, 0.0f});
+    inverse_particle_masses.resize(current_size + new_particles, 0.0f);
+    // Current size should correspond to the latest available index
+    size_t const index_shift = current_size;
+    Mesh copy = mesh;
+    copy.begin += index_shift;
+    copy.end += index_shift;
+    for (auto& face : copy.faces)
+    {
+        face[0] += index_shift;
+        face[1] += index_shift;
+        face[2] += index_shift;
+    }
+    copy.type = Mesh_type::static_mesh;
+    auto const& emplaced_mesh = meshes.emplace_back(std::move(copy));
+    add_constraints_for_mesh(emplaced_mesh, 1.0f, 1.0f);
+    return emplaced_mesh;
+}
+
+Mesh const& World::add_rigid_body(std::vector<umath::Position> const& pos, Mesh const& mesh, umath::Real mass)
+{
+    size_t const new_particles = pos.size();
+    size_t const current_size = positions.size();
+    reserve_for_particles(current_size + new_particles);
+    positions.insert(positions.end(), pos.begin(), pos.end());
+    velocities.resize(current_size + new_particles, umath::Vec3{0.0f, 0.0f, 0.0f});
+    inverse_particle_masses.resize(current_size + new_particles, 1.0 / mass);
+    // Current size should correspond to the latest available index
+    size_t const index_shift = current_size;
+    Mesh copy = mesh;
+    copy.begin += index_shift;
+    copy.end += index_shift;
+    for (auto& face : copy.faces)
+    {
+        face[0] += index_shift;
+        face[1] += index_shift;
+        face[2] += index_shift;
+    }
+    copy.type = Mesh_type::rigid_body;
+    auto const& emplaced_mesh = meshes.emplace_back(std::move(copy));
+    add_constraints_for_mesh(emplaced_mesh, 1.0f, 1.0f);
+    return emplaced_mesh;
 }
 
 }  // namespace simulation

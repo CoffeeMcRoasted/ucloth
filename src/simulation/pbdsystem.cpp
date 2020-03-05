@@ -55,7 +55,7 @@ void PBD_system::damp_velocity(umath::Real const k_damping,
         umath::Position const ri = positions[p] - xcm;
         L += umath::cross(ri, velocities[p] / inverse_masses[p]);
     }
-    // Calculate Inertia
+    // Calculate Inertia Matrix
     // ri_prime is the skew-symmetric matrix that has the property ri_prime v = ri x v
     umath::Mat3x3 I = umath::Mat3x3{0.0f};
     for (Particle p = 0; p < n_particles; ++p)
@@ -96,7 +96,7 @@ std::vector<simulation::Collision_constraint> PBD_system::generate_collision_con
     {
         for (auto const& mesh : meshes)
         {
-            for (auto const& face : mesh)
+            for (auto const& face : mesh.faces)
             {
                 if (p == face[0] || p == face[1] || p == face[2])
                 {

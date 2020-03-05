@@ -52,7 +52,7 @@ TEST_F(Constraint_test, Bending_constraint_test)
     world.velocities = {
         {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 10.0}, {0.0, 0.0, 10.0}};
     world.inverse_particle_masses = {p_inv_mass, p_inv_mass, p_inv_mass, p_inv_mass, p_inv_mass, p_inv_mass};
-    world.meshes = {{{0, 3, 1}, {1, 3, 2}, {3, 4, 2}, {2, 4, 5}}};  //< 2 quads composed of 4 triangles.
+    world.meshes = {{{{0, 3, 1}, {1, 3, 2}, {3, 4, 2}, {2, 4, 5}}, 0, 5}};  //< 2 quads composed of 4 triangles.
     std::vector<umath::Position> position_estimates;
     simulation::PBD_system::calculate_position_estimates(
         world.positions, world.velocities, delta_time, position_estimates);

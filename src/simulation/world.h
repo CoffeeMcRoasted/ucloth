@@ -28,10 +28,20 @@ struct World
     void clear();
     void reserve_for_particles(size_t const n_particles);
     void add_acceleration(umath::Vec3 acceleration);
-    void add_cloth(std::vector<umath::Position> const& pos,
-                   Mesh const& mesh,
-                   umath::Real cloth_elasticity,
-                   umath::Real cloth_bending_stifness);
+    Mesh const& add_cloth(std::vector<umath::Position> const& pos,
+                          Mesh const& mesh,
+                          umath::Real cloth_mass,
+                          umath::Real cloth_elasticity,
+                          umath::Real cloth_bending_stifness);
+
+    Mesh const& add_static_mesh(std::vector<umath::Position> const& pos, Mesh const& mesh);
+
+    Mesh const& add_rigid_body(std::vector<umath::Position> const& pos, Mesh const& mesh, umath::Real mass);
+
+private:
+    void add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elasticity, umath::Real cloth_bending_stifness);
+
+    // std::vector<umath::Position> const& retrieve_cloth(Mesh const& mesh);
 };
 }  // namespace simulation
 }  // namespace ucloth
