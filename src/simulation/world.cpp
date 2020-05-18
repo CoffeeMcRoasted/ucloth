@@ -203,5 +203,12 @@ Mesh const& World::add_rigid_body(std::vector<umath::Position> const& pos, Mesh 
     return emplaced_mesh;
 }
 
+void World::attach_particle(Mesh const& mesh, Particle particle, umath::Position pos)
+{
+    Particle particle_in_world = mesh.begin + particle;
+    particle_attachments.push_back(
+        std::move(Attachment{particle_in_world, inverse_particle_masses[particle_in_world], pos}));
+}
+
 }  // namespace simulation
 }  // namespace ucloth

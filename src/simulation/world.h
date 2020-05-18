@@ -20,6 +20,7 @@ struct World
     // Particle relations
     std::vector<Distance_constraint> distance_constraints;
     std::vector<Bending_constraint> bending_constraints;
+    std::vector<Attachment> particle_attachments;
     // Accelerations global to the simulation
     std::vector<umath::Vec3> accelerations;
     // Geometrical structures within the simulation
@@ -37,6 +38,12 @@ struct World
     Mesh const& add_static_mesh(std::vector<umath::Position> const& pos, Mesh const& mesh);
 
     Mesh const& add_rigid_body(std::vector<umath::Position> const& pos, Mesh const& mesh, umath::Real mass);
+
+    void attach_particle(Mesh const& mesh, Particle particle, umath::Position pos);
+    // void attach_particle(Mesh const& mesh,
+    //                      Particle particle,
+    //                      Mesh const& destination_mesh,
+    //                      Particle destination_particle);
 
 private:
     void add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elasticity, umath::Real cloth_bending_stifness);

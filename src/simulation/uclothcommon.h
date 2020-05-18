@@ -6,6 +6,8 @@
 #include <umath/umath.h>
 #include <utility>
 #include <vector>
+#include <optional>
+#include <variant>
 
 namespace ucloth
 {
@@ -18,6 +20,13 @@ struct Applied_force
 {
     Particle dest;
     Force val;
+};
+
+struct Attachment
+{
+    Particle p;
+    umath::Real original_inv_mass;
+    std::variant<Particle, umath::Position> destination;
 };
 
 // Clockwise definition of a geometry face referring to particles in world.
@@ -37,7 +46,8 @@ struct Mesh
     std::vector<Face> faces;
     Particle begin;  //< Defines the range in the world's particles.
     Particle end;
-    umath::Real cloth_thickness;  // only used if cloth
+    umath::Real k_velocity;       //< Defines damping of velocities. [0,1], 1 if regid body.
+    umath::Real cloth_thickness;  //< Only used if cloth
     Mesh_type type;
 };
 }  // namespace simulation

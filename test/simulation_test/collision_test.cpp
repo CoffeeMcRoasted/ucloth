@@ -27,13 +27,18 @@ TEST_F(Collision_test, Collision_Generation_test)
         {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0f / 3.0f, 1.0f / 3.0f, 0.05}};
     world.velocities = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -50.0}};
     world.inverse_particle_masses = {1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1};
-    world.meshes = {{{{0, 3, 1}, {1, 3, 2}}, 0, 3}};  //< 1 quad composed of 2 triangles.
+    world.meshes = {{{{0, 3, 1}, {1, 3, 2}},
+                     0,
+                     3,
+                     0.9,
+                     0.01,
+                     simulation::Mesh_type::cloth}};  //< 1 quad of cloth composed of 2 triangles.
 
     std::vector<umath::Position> pos_estimates;
     simulation::PBD_system::calculate_position_estimates(world.positions, world.velocities, delta_time, pos_estimates);
 
-    std::vector<simulation::Collision_constraint> collisions = simulation::PBD_system::generate_collision_constraints(
-        world.positions, pos_estimates, world.meshes, cloth_thickness);
+    std::vector<simulation::Collision_constraint> collisions =
+        simulation::PBD_system::generate_collision_constraints(world.positions, pos_estimates, world.meshes);
 
     ASSERT_EQ(collisions.size(), 1);
     simulation::Collision_constraint const& c = collisions.front();
@@ -57,13 +62,18 @@ TEST_F(Collision_test, Inverse_Collision_Generation_test)
         {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0f / 3.0f, 1.0f / 3.0f, -0.05}};
     world.velocities = {{0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, 50.0}};
     world.inverse_particle_masses = {1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1, 1 / 0.1};
-    world.meshes = {{{{0, 3, 1}, {1, 3, 2}}, 0, 3}};  //< 1 quad composed of 2 triangles.
+    world.meshes = {{{{0, 3, 1}, {1, 3, 2}},
+                     0,
+                     3,
+                     0.9,
+                     0.01,
+                     simulation::Mesh_type::cloth}};  //< 1 quad of cloth composed of 2 triangles.
 
     std::vector<umath::Position> pos_estimates;
     simulation::PBD_system::calculate_position_estimates(world.positions, world.velocities, delta_time, pos_estimates);
 
-    std::vector<simulation::Collision_constraint> collisions = simulation::PBD_system::generate_collision_constraints(
-        world.positions, pos_estimates, world.meshes, cloth_thickness);
+    std::vector<simulation::Collision_constraint> collisions =
+        simulation::PBD_system::generate_collision_constraints(world.positions, pos_estimates, world.meshes);
 
     ASSERT_EQ(collisions.size(), 1);
     simulation::Collision_constraint const& c = collisions.front();

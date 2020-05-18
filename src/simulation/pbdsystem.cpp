@@ -1,11 +1,19 @@
 #include "pbdsystem.h"
 #include <algorithm>
 #include <numeric>
+#include <iterator>
 #include <simulation/collision.h>
+#include <variant>
+
 namespace ucloth
 {
 namespace simulation
 {
+PBD_system::PBD_system(bool simulate_collisions) noexcept
+    : simulate_collisions(simulate_collisions)
+{
+}
+
 void PBD_system::apply_external_accelerations(std::vector<umath::Vec3> const& accelerations,
                                               umath::Real const delta_time,
                                               std::vector<umath::Vec3>& velocities)
@@ -21,64 +29,68 @@ void PBD_system::apply_external_accelerations(std::vector<umath::Vec3> const& ac
     }
 }
 
-void PBD_system::damp_velocity(umath::Real const k_damping,
-                               std::vector<umath::Real> const& inverse_masses,
+void PBD_system::damp_velocity(std::vector<Mesh> const& meshes,
                                std::vector<umath::Position> const& positions,
+                               std::vector<umath::Real> const& inverse_masses,
                                std::vector<umath::Vec3>& velocities)
 {
-    // All the vectors should be the same size.
-    size_t const n_particles = positions.size();
-    // Mass total of the system
-    umath::Real const total_mass = std::accumulate(
-        inverse_masses.begin(),
-        inverse_masses.end(),
-        0.0f,
-        [](umath::Real input, ucloth::umath::Real const inverse_mass) { return std::move(input) + 1 / inverse_mass; });
-    // Calculate the center of mass
-    umath::Position xcm = {0, 0, 0};
-    for (Particle p = 0; p < n_particles; ++p)
+    for (auto const& mesh : meshes)
     {
-        xcm += positions[p] / inverse_masses[p];
-    }
-    xcm /= total_mass;
-    // Calculate the velocity of center of mass
-    umath::Position vcm = {0, 0, 0};
-    for (Particle p = 0; p < n_particles; ++p)
-    {
-        vcm += velocities[p] / inverse_masses[p];
-    }
-    vcm /= total_mass;
-    // Calculate the angular velocity
-    umath::Vec3 L = {0.0f, 0.0f, 0.0f};
-    for (Particle p = 0; p < n_particles; ++p)
-    {
-        umath::Position const ri = positions[p] - xcm;
-        L += umath::cross(ri, velocities[p] / inverse_masses[p]);
-    }
-    // Calculate Inertia Matrix
-    // ri_prime is the skew-symmetric matrix that has the property ri_prime v = ri x v
-    umath::Mat3x3 I = umath::Mat3x3{0.0f};
-    for (Particle p = 0; p < n_particles; ++p)
-    {
-        umath::Position const ri = positions[p] - xcm;
-        umath::Mat3x3 const ri_prime = {{0, ri.z, -ri.y}, {-ri.z, 0, ri.x}, {ri.y, -ri.x, 0}};
-        I += ri_prime * umath::transpose(ri_prime) / inverse_masses[p];
-    }
+        // All the vectors should be the same size.
+        //  size_t const n_particles = positions.size();
+        // Mass total of the system
+        umath::Real const total_mass = std::accumulate(inverse_masses.begin() + mesh.begin,
+                                                       inverse_masses.begin() + mesh.end,
+                                                       0.0f,
+                                                       [](umath::Real input, ucloth::umath::Real const inverse_mass) {
+                                                           return std::move(input) + 1 / inverse_mass;
+                                                       });
 
-    umath::Vec3 angular_velocity = umath::inverse(I) * L;
-    for (Particle p = 0; p < n_particles; ++p)
-    {
-        glm::vec3 const ri = positions[p] - xcm;
-        glm::vec3 const deltaVel = vcm + umath::cross(angular_velocity, ri) - velocities[p];
-        velocities[p] += k_damping * deltaVel;
+        // Calculate the center of mass
+        umath::Position xcm = {0, 0, 0};
+        for (Particle p = mesh.begin; p < mesh.end; ++p)
+        {
+            xcm += positions[p] / (inverse_masses[p] /*+ umath::k_epsilon*/);
+        }
+        xcm /= total_mass;
+        // Calculate the velocity of center of mass
+        umath::Position vcm = {0, 0, 0};
+        for (Particle p = mesh.begin; p < mesh.end; ++p)
+        {
+            vcm += velocities[p] / (inverse_masses[p] /*+ umath::k_epsilon*/);
+        }
+        vcm /= total_mass;
+        // Calculate the angular velocity
+        umath::Vec3 L = {0.0f, 0.0f, 0.0f};
+        for (Particle p = mesh.begin; p < mesh.end; ++p)
+        {
+            umath::Position const ri = positions[p] - xcm;
+            L += umath::cross(ri, velocities[p] / (inverse_masses[p] /*+ umath::k_epsilon*/));
+        }
+        // Calculate Inertia Matrix
+        // ri_prime is the skew-symmetric matrix that has the property ri_prime v = ri x v
+        umath::Mat3x3 I = umath::Mat3x3{0.0f};
+        for (Particle p = mesh.begin; p < mesh.end; ++p)
+        {
+            umath::Position const ri = positions[p] - xcm;
+            umath::Mat3x3 const ri_prime = {{0, ri.z, -ri.y}, {-ri.z, 0, ri.x}, {ri.y, -ri.x, 0}};
+            I += ri_prime * umath::transpose(ri_prime) / (inverse_masses[p] /*+ umath::k_epsilon*/);
+        }
+
+        umath::Vec3 angular_velocity = umath::inverse(I) * L;
+        for (Particle p = mesh.begin; p < mesh.end; ++p)
+        {
+            glm::vec3 const ri = positions[p] - xcm;
+            glm::vec3 const deltaVel = vcm + umath::cross(angular_velocity, ri) - velocities[p];
+            velocities[p] += mesh.k_velocity * deltaVel;
+        }
     }
 }
 
 std::vector<simulation::Collision_constraint> PBD_system::generate_collision_constraints(
     std::vector<umath::Position> const& positions,
     std::vector<umath::Position> const& p_estimations,
-    std::vector<simulation::Mesh> const& meshes,
-    umath::Real const cloth_thickness)
+    std::vector<simulation::Mesh> const& meshes)
 {
     // All the vectors should be the same size.
     // TODO: Modify this to use and optimization structure.
@@ -108,7 +120,7 @@ std::vector<simulation::Collision_constraint> PBD_system::generate_collision_con
                 if (success)
                 {
                     constraints.emplace_back(
-                        Collision_constraint{p, face[0], face[1], face[2], cloth_thickness, umath::Real{1.0}});
+                        Collision_constraint{p, face[0], face[1], face[2], mesh.cloth_thickness, umath::Real{1.0}});
                 }
             }
         }
@@ -144,6 +156,22 @@ void PBD_system::project_constraints(std::vector<simulation::Collision_constrain
     project_collision_constraints(collision_constraints, inverse_masses, solver_iterations, position_estimates);
 }
 
+void PBD_system::solve_attachments(std::vector<simulation::Attachment> const& attachments,
+                                   std::vector<umath::Position>& position_estimates)
+{
+    for (auto const& attachment : attachments)
+    {
+        if (std::holds_alternative<Particle>(attachment.destination))
+        {
+            position_estimates[attachment.p] = position_estimates[std::get<Particle>(attachment.destination)];
+        }
+        else
+        {
+            position_estimates[attachment.p] = std::get<umath::Position>(attachment.destination);
+        }
+    }
+}
+
 /**
 pbd algorithm:
 forall vertices i
@@ -164,29 +192,42 @@ loop
     velocityUpdate(v1,..., v_N)
 endloop
 **/
-void PBD_system::simulate(umath::Real const delta_time, World& world)
+void PBD_system::simulate(umath::Real const delta_time, size_t const solver_iterations, World& world)
 {
     apply_external_accelerations(world.accelerations, delta_time, world.velocities);
-    damp_velocity(velocity_damping, world.inverse_particle_masses, world.positions, world.velocities);
+    damp_velocity(world.meshes, world.positions, world.inverse_particle_masses, world.velocities);
     calculate_position_estimates(world.positions, world.velocities, delta_time, position_estimates);
     std::vector<simulation::Collision_constraint> collision_constraints =
-        generate_collision_constraints(world.positions, position_estimates, world.meshes, cloth_thickness);
+        simulate_collisions ? generate_collision_constraints(world.positions, position_estimates, world.meshes)
+                            : std::vector<simulation::Collision_constraint>();
+    for (auto const& attachment : world.particle_attachments)
+    {
+        world.inverse_particle_masses[attachment.p] = 0;
+    }
     for (size_t i = 0; i < solver_iterations; ++i)
     {
-        project_constraints(collision_constraints,
-                            world.distance_constraints,
-                            world.bending_constraints,
-                            world.inverse_particle_masses,
-                            solver_iterations,
-                            position_estimates);
+        project_distance_constraints(
+            world.distance_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
+        project_bending_constraints(
+            world.bending_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
+        if (simulate_collisions)
+        {
+            project_collision_constraints(
+                collision_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
+        }
+        solve_attachments(world.particle_attachments, position_estimates);
+    }
+    for (auto const& attachment : world.particle_attachments)
+    {
+        world.inverse_particle_masses[attachment.p] = attachment.original_inv_mass;
     }
     size_t const n_particles = world.positions.size();
     for (simulation::Particle p = 0; p < n_particles; ++p)
     {
         world.velocities[p] = (position_estimates[p] - world.positions[p]) / delta_time;
     }
-    std::copy(position_estimates.begin(), position_estimates.end(), world.positions.begin());
     // velocity_update()
+    std::copy(position_estimates.begin(), position_estimates.end(), world.positions.begin());
 }
 
 }  // namespace simulation
