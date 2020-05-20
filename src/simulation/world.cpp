@@ -43,9 +43,10 @@ void World::add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elastic
 {
     // Generate distance constraints
     // Generate edges
-    std::unordered_map<Edge, std::vector<Face>, pair_hash> edge_faces_map;
+    // std::unordered_map<Edge, std::vector<Face>, pair_hash> edge_faces_map;
+    std::vector<std::pair<Edge, std::vector<Face>>> edge_faces;
     // Worst case scenario all triangles are separate
-    edge_faces_map.reserve((mesh.end - mesh.begin) * 3);
+    edge_faces.reserve((mesh.end - mesh.begin) * 3);
     for (auto const& face : mesh.faces)
     {
         Edge const e0 = {face[0], face[1]};
@@ -57,46 +58,49 @@ void World::add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elastic
         // Find edge to add face to.
         // We cannot ensure the order of the edge vertices.
         // E0
-        if (edge_faces_map.find(e0) == edge_faces_map.end())
+        auto edge0_face_it = std::find_if(
+            edge_faces.begin(), edge_faces.end(), [&e0, &ei0](std::pair<Edge, std::vector<Face>> const& edge_face) {
+                return edge_face.first == e0 || edge_face.first == ei0;
+            });
+
+        if (edge0_face_it != edge_faces.end())
         {
-            edge_faces_map[e0].push_back(face);
-        }
-        else if (edge_faces_map.find(ei0) == edge_faces_map.end())
-        {
-            edge_faces_map[ei0].push_back(face);
+            edge0_face_it->second.push_back(face);
         }
         else
         {
-            edge_faces_map.emplace(std::make_pair(e0, std::vector<Face>{face}));
+            edge_faces.emplace_back(std::make_pair(e0, std::vector<Face>{face}));
         }
         // E1
-        if (edge_faces_map.find(e1) == edge_faces_map.end())
+        auto edge1_face_it = std::find_if(
+            edge_faces.begin(), edge_faces.end(), [&e1, &ei1](std::pair<Edge, std::vector<Face>> const& edge_face) {
+                return edge_face.first == e1 || edge_face.first == ei1;
+            });
+
+        if (edge1_face_it != edge_faces.end())
         {
-            edge_faces_map[e1].push_back(face);
-        }
-        else if (edge_faces_map.find(ei1) == edge_faces_map.end())
-        {
-            edge_faces_map[ei1].push_back(face);
+            edge1_face_it->second.push_back(face);
         }
         else
         {
-            edge_faces_map.emplace(std::make_pair(e1, std::vector<Face>{face}));
+            edge_faces.emplace_back(std::make_pair(e1, std::vector<Face>{face}));
         }
         // E2
-        if (edge_faces_map.find(e2) == edge_faces_map.end())
+        auto edge2_face_it = std::find_if(
+            edge_faces.begin(), edge_faces.end(), [&e2, &ei2](std::pair<Edge, std::vector<Face>> const& edge_face) {
+                return edge_face.first == e2 || edge_face.first == ei2;
+            });
+
+        if (edge2_face_it != edge_faces.end())
         {
-            edge_faces_map[e2].push_back(face);
-        }
-        else if (edge_faces_map.find(ei2) == edge_faces_map.end())
-        {
-            edge_faces_map[ei2].push_back(face);
+            edge2_face_it->second.push_back(face);
         }
         else
         {
-            edge_faces_map.emplace(std::make_pair(e2, std::vector<Face>{face}));
+            edge_faces.emplace_back(std::make_pair(e2, std::vector<Face>{face}));
         }
     }
-    for (auto const& pair : edge_faces_map)
+    for (auto const& pair : edge_faces)
     {
         auto const& edge = pair.first;
         umath::Real const distance = umath::length(positions[edge.first] - positions[edge.second]);
@@ -104,7 +108,8 @@ void World::add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elastic
 
         auto const& faces = pair.second;
         // We should never have a non-manifold mesh, with more than 2 faces per edge
-        if (faces.size() > 1)
+        // We dont generate bending constraints for edges associated to a single face
+        if (faces.size() == 2)
         {
             Particle const& p1 = edge.first;
             Particle const& p2 = edge.second;
@@ -113,10 +118,14 @@ void World::add_constraints_for_mesh(Mesh const& mesh, umath::Real cloth_elastic
             Particle const& p4 = *std::find_if(
                 faces[1].begin(), faces[1].end(), [&p1, &p2](Particle const& p) { return p != p1 && p != p2; });
 
-            umath::Vec3 const n1 = umath::cross(positions[p3] - positions[p1], positions[p2] - positions[p1]);
-            umath::Vec3 const n2 = umath::cross(positions[p4] - positions[p1], positions[p2] - positions[p1]);
+            umath::Vec3 const p2p1 = positions[p2] - positions[p1];
+            umath::Vec3 const p3p1 = positions[p3] - positions[p1];
+            umath::Vec3 const p4p1 = positions[p4] - positions[p1];
 
-            umath::Real const dihedral_angle = acosf(umath::dot(n1, n2) / (umath::length(n1) * umath::length(n2)));
+            umath::Vec3 const n1 = umath::normalize(umath::cross(p2p1, p3p1));
+            umath::Vec3 const n2 = umath::normalize(umath::cross(p2p1, p4p1));
+            // with normalized vector the dot product equals the cosine of the angle.
+            umath::Real const dihedral_angle = acosf(umath::dot(n1, n2));
             bending_constraints.emplace_back(
                 Bending_constraint{p1, p2, p3, p4, dihedral_angle, cloth_bending_stifness});
         }

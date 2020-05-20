@@ -21,7 +21,10 @@ struct Ray
 
 constexpr Real k_div_by_zero_guard = 1e-8;
 constexpr Real k_epsilon = 1e-8;
-
+inline Real clamp(Real val, Real min, Real max)
+{
+    return glm::clamp(val, min, max);
+}
 inline Real dot(Vec3 a, Vec3 b)
 {
     return glm::dot(a, b);

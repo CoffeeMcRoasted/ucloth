@@ -14,14 +14,15 @@ void project_distance_constraints(std::vector<Distance_constraint> const& constr
     {
         umath::Position& p1 = positions[constraint.p1];
         umath::Position& p2 = positions[constraint.p2];
-        umath::Real const w_1 = inverse_masses[constraint.p1];
-        umath::Real const w_2 = inverse_masses[constraint.p2];
+        umath::Real const w1 = inverse_masses[constraint.p1];
+        umath::Real const w2 = inverse_masses[constraint.p2];
 
         umath::Vec3 const shared_value = (umath::length(p1 - p2) - constraint.distance) * (p1 - p2) /
-                                         (umath::length(p1 - p2) * (w_1 + w_2) + umath::k_div_by_zero_guard);
-        umath::Real const k_prime = 1 - powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations));
-        p1 += -w_1 * k_prime * shared_value;
-        p2 += w_2 * k_prime * shared_value;
+                                         (umath::length(p1 - p2) * (w1 + w2) + umath::k_div_by_zero_guard);
+        umath::Real const k_prime =
+            1.0 - powf(1.0 - constraint.stiffness, 1.0 / static_cast<umath::Real>(solver_iterations));
+        p1 += -w1 * k_prime * shared_value;
+        p2 += w2 * k_prime * shared_value;
     }
 }
 
@@ -43,12 +44,13 @@ void project_bending_constraints(std::vector<Bending_constraint> const& constrai
         umath::Real const mod_p2xp4 = umath::length(cross_p2xp4);
         umath::Vec3 const n1 = umath::normalize(cross_p2xp3);
         umath::Vec3 const n2 = umath::normalize(cross_p2xp4);
-        umath::Real const d = umath::dot(n1, n2);
+        // Some small alterations in normals may drive this outside the boundary [-1, 1].
+        umath::Real const d = umath::clamp(umath::dot(n1, n2), -1.0, 1.0);
         // Compute the gradients
-        umath::Vec3 const q3 = glm::cross(p2, n2) + glm::cross(n1, p2) * d / mod_p2xp3;
-        umath::Vec3 const q4 = glm::cross(p2, n1) + glm::cross(n2, p2) * d / mod_p2xp4;
-        umath::Vec3 const q2 = -(glm::cross(p3, n2) + glm::cross(n1, p3) * d) / mod_p2xp3 -
-                               (glm::cross(p4, n1) + glm::cross(n2, p4) * d) / mod_p2xp4;
+        umath::Vec3 const q3 = (glm::cross(p2, n2) + glm::cross(n1, p2) * d) / mod_p2xp3;
+        umath::Vec3 const q4 = (glm::cross(p2, n1) + glm::cross(n2, p2) * d) / mod_p2xp4;
+        umath::Vec3 const q2 = -((glm::cross(p3, n2) + glm::cross(n1, p3) * d) / mod_p2xp3) -
+                               ((glm::cross(p4, n1) + glm::cross(n2, p4) * d) / mod_p2xp4);
         umath::Vec3 const q1 = -q2 - q3 - q4;
         // Compute the projections
         umath::Real const k =
@@ -58,12 +60,13 @@ void project_bending_constraints(std::vector<Bending_constraint> const& constrai
              inverse_masses[constraint.p3] * umath::length(q3) * umath::length(q3) +
              inverse_masses[constraint.p4] * umath::length(q4) * umath::length(q4) + umath::k_div_by_zero_guard);
 
-        umath::Position const delta_p1 = inverse_masses[constraint.p1] * k * q1;
-        umath::Position const delta_p2 = inverse_masses[constraint.p2] * k * q2;
-        umath::Position const delta_p3 = inverse_masses[constraint.p3] * k * q3;
-        umath::Position const delta_p4 = inverse_masses[constraint.p4] * k * q4;
+        umath::Position const delta_p1 = -inverse_masses[constraint.p1] * k * q1;
+        umath::Position const delta_p2 = -inverse_masses[constraint.p2] * k * q2;
+        umath::Position const delta_p3 = -inverse_masses[constraint.p3] * k * q3;
+        umath::Position const delta_p4 = -inverse_masses[constraint.p4] * k * q4;
 
-        umath::Real const k_prime = 1 - powf(1 - constraint.stiffness, 1 / static_cast<umath::Real>(solver_iterations));
+        umath::Real const k_prime =
+            1.0 - powf(1.0 - constraint.stiffness, 1.0 / static_cast<umath::Real>(solver_iterations));
 
         positions[constraint.p1] += delta_p1 * k_prime;
         positions[constraint.p2] += delta_p2 * k_prime;

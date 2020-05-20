@@ -18,13 +18,11 @@ void PBD_system::apply_external_accelerations(std::vector<umath::Vec3> const& ac
                                               umath::Real const delta_time,
                                               std::vector<umath::Vec3>& velocities)
 {
-    for (umath::Vec3 const& acceleration : accelerations)
+    for (auto const& acceleration : accelerations)
     {
-        // All the vectors should be the same size.
-        size_t const size = velocities.size();
-        for (size_t i = 0; i < size; ++i)
+        for (auto& velocity : velocities)
         {
-            velocities[i] += acceleration * delta_time;
+            velocity += acceleration * delta_time;
         }
     }
 }
@@ -43,7 +41,7 @@ void PBD_system::damp_velocity(std::vector<Mesh> const& meshes,
                                                        inverse_masses.begin() + mesh.end,
                                                        0.0f,
                                                        [](umath::Real input, ucloth::umath::Real const inverse_mass) {
-                                                           return std::move(input) + 1 / inverse_mass;
+                                                           return std::move(input) + (1.0f / inverse_mass);
                                                        });
 
         // Calculate the center of mass
@@ -73,7 +71,9 @@ void PBD_system::damp_velocity(std::vector<Mesh> const& meshes,
         for (Particle p = mesh.begin; p < mesh.end; ++p)
         {
             umath::Position const ri = positions[p] - xcm;
-            umath::Mat3x3 const ri_prime = {{0, ri.z, -ri.y}, {-ri.z, 0, ri.x}, {ri.y, -ri.x, 0}};
+            // umath::Mat3x3 const ri_prime = {{0, ri.z, -ri.y}, {-ri.z, 0, ri.x}, {ri.y, -ri.x, 0}};
+            // glm is column major YAY!
+            umath::Mat3x3 const ri_prime = {{0, -ri.z, ri.y}, {ri.z, 0, -ri.x}, {-ri.y, ri.x, 0}};
             I += ri_prime * umath::transpose(ri_prime) / (inverse_masses[p] /*+ umath::k_epsilon*/);
         }
 
@@ -135,12 +135,18 @@ void PBD_system::calculate_position_estimates(std::vector<umath::Position> const
                                               std::vector<umath::Position>& position_estimates)
 {
     // All the vectors should be the same size.
+    // size_t const n_particles = positions.size();
+    // position_estimates.clear();
+    // position_estimates.reserve(n_particles);
+    // for (Particle p = 0; p < n_particles; ++p)
+    // {
+    //     position_estimates.emplace_back(positions[p] + delta_time * velocities[p]);
+    // }
     size_t const n_particles = positions.size();
-    position_estimates.clear();
-    position_estimates.reserve(n_particles);
+    position_estimates.resize(n_particles);
     for (Particle p = 0; p < n_particles; ++p)
     {
-        position_estimates.emplace_back(positions[p] + delta_time * velocities[p]);
+        position_estimates[p] = positions[p] + delta_time * velocities[p];
     }
 }
 
@@ -197,9 +203,10 @@ void PBD_system::simulate(umath::Real const delta_time, size_t const solver_iter
     apply_external_accelerations(world.accelerations, delta_time, world.velocities);
     damp_velocity(world.meshes, world.positions, world.inverse_particle_masses, world.velocities);
     calculate_position_estimates(world.positions, world.velocities, delta_time, position_estimates);
-    std::vector<simulation::Collision_constraint> collision_constraints =
-        simulate_collisions ? generate_collision_constraints(world.positions, position_estimates, world.meshes)
-                            : std::vector<simulation::Collision_constraint>();
+    solve_attachments(world.particle_attachments, position_estimates);
+    // std::vector<simulation::Collision_constraint> const collision_constraints =
+    //     simulate_collisions ? generate_collision_constraints(world.positions, position_estimates, world.meshes)
+    //                         : std::vector<simulation::Collision_constraint>();
     for (auto const& attachment : world.particle_attachments)
     {
         world.inverse_particle_masses[attachment.p] = 0;
@@ -210,23 +217,23 @@ void PBD_system::simulate(umath::Real const delta_time, size_t const solver_iter
             world.distance_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
         project_bending_constraints(
             world.bending_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
-        if (simulate_collisions)
-        {
-            project_collision_constraints(
-                collision_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
-        }
+        // if (simulate_collisions)
+        // {
+        //     project_collision_constraints(
+        //         collision_constraints, world.inverse_particle_masses, solver_iterations, position_estimates);
+        // }
         solve_attachments(world.particle_attachments, position_estimates);
     }
     for (auto const& attachment : world.particle_attachments)
     {
         world.inverse_particle_masses[attachment.p] = attachment.original_inv_mass;
     }
+    // velocity_update()
     size_t const n_particles = world.positions.size();
     for (simulation::Particle p = 0; p < n_particles; ++p)
     {
         world.velocities[p] = (position_estimates[p] - world.positions[p]) / delta_time;
     }
-    // velocity_update()
     std::copy(position_estimates.begin(), position_estimates.end(), world.positions.begin());
 }
 
